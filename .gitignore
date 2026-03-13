@@ -54,3 +54,5 @@ node_modules/
 *.DISABLED
 _backup_pages/
 PEGAR_AQUI_*
+.vercel
+.env*.local
