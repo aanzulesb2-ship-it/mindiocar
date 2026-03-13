@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Mic, MicOff, Send, Trash2, Maximize2, Minimize2 } from "lucide-react";
 
 const SYSTEM_HINT =
-  "Eres el asistente técnico de Rectificadora Mindiocar. Responde claro, corto y útil. " +
-  "Cuando hables de motores, sé preciso. Si faltan datos, pregunta 1 cosa a la vez.";
+  "Eres el asistente tecnico de Rectificadora Mindiocar. Responde claro, corto y util. " +
+  "Cuando hables de motores, se preciso. Si faltan datos, pregunta 1 cosa a la vez.";
 
 function getSpeechRecognition() {
   if (typeof window === "undefined") return null;
@@ -29,8 +29,7 @@ export default function AsistenteMecanico() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content:
-        "Hola 👋 Soy el asistente de Rectificadora Mindiocar. ¿Qué motor estás trabajando hoy?",
+      content: "Hola. Soy el asistente de Rectificadora Mindiocar. Que motor estas trabajando hoy?",
     },
   ]);
 
@@ -84,11 +83,7 @@ export default function AsistenteMecanico() {
       }
 
       if (finalText.trim()) {
-        finalTranscriptRef.current = (
-          finalTranscriptRef.current +
-          " " +
-          finalText
-        ).trim();
+        finalTranscriptRef.current = (finalTranscriptRef.current + " " + finalText).trim();
       }
 
       const screenText = [finalTranscriptRef.current, interimText.trim()]
@@ -102,12 +97,11 @@ export default function AsistenteMecanico() {
 
     rec.onerror = (event) => {
       setListening(false);
-      setMicError(event?.error || "No se pudo usar el micrófono");
+      setMicError(event?.error || "No se pudo usar el microfono");
     };
 
     rec.onend = () => {
-      const dictated =
-        liveTranscriptRef.current.trim() || finalTranscriptRef.current.trim();
+      const dictated = liveTranscriptRef.current.trim() || finalTranscriptRef.current.trim();
 
       if (dictated) {
         setInput((prev) => {
@@ -140,7 +134,7 @@ export default function AsistenteMecanico() {
     const rec = recognitionRef.current;
 
     if (!rec) {
-      alert("Tu navegador no soporta dictado por micrófono. Usa Chrome o Edge.");
+      alert("Tu navegador no soporta dictado por microfono. Usa Chrome o Edge.");
       return;
     }
 
@@ -154,7 +148,7 @@ export default function AsistenteMecanico() {
       rec.start();
     } catch {
       setListening(false);
-      setMicError("No diste permiso al micrófono o el micrófono no está disponible.");
+      setMicError("No diste permiso al microfono o el microfono no esta disponible.");
     }
   };
 
@@ -179,7 +173,7 @@ export default function AsistenteMecanico() {
     setMessages([
       {
         role: "assistant",
-        content: "Listo. Empecemos de nuevo. ¿Qué necesitas revisar del motor?",
+        content: "Listo. Empecemos de nuevo. Que necesitas revisar del motor?",
       },
     ]);
     setInput("");
@@ -231,8 +225,7 @@ export default function AsistenteMecanico() {
         {
           role: "assistant",
           content:
-            "⚠️ No pude responder ahora.\n\nDetalle: " +
-            (e?.message || "Error desconocido"),
+            "No pude responder ahora.\n\nDetalle: " + (e?.message || "Error desconocido"),
         },
       ]);
     } finally {
@@ -281,40 +274,7 @@ export default function AsistenteMecanico() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={toggleMic}
-            className={
-              "inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 font-semibold " +
-              (listening ? "ring-2 ring-yellow-400 animate-pulse" : "")
-            }
-            title={listening ? "Detener micrófono" : "Hablar por micrófono"}
-          >
-            {listening ? <MicOff size={16} /> : <Mic size={16} />}
-            {listening ? "Grabando..." : "Mic"}
-          </button>
-
-          <button
-            type="button"
-            onClick={clearChat}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 font-semibold"
-            title="Limpiar chat"
-          >
-            <Trash2 size={16} />
-            Limpiar
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-stone-900 text-white hover:bg-stone-800 font-semibold"
-            title={expanded ? "Salir pantalla completa (Esc)" : "Expandir"}
-          >
-            {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            {expanded ? "Salir" : "Expandir"}
-          </button>
-        </div>
+        <div />
       </div>
 
       <div className="p-4 md:p-6">
@@ -343,7 +303,7 @@ export default function AsistenteMecanico() {
           {listening && (
             <div className="mb-3 flex justify-start">
               <div className="max-w-[75%] rounded-2xl px-4 py-3 text-sm bg-yellow-50 text-stone-800 border border-yellow-300 whitespace-pre-wrap">
-                🎤 Escuchando...
+                Escuchando...
                 {liveTranscript ? `\n${liveTranscript}` : ""}
               </div>
             </div>
@@ -375,20 +335,51 @@ export default function AsistenteMecanico() {
             className="flex-1 resize-none rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-yellow-400 disabled:bg-stone-100 disabled:text-stone-500"
             placeholder={
               listening
-                ? "Dictando por micrófono..."
-                : "Escribe tu pregunta... (Enter envía, Shift+Enter salto de línea)"
+                ? "Dictando por microfono..."
+                : "Escribe tu pregunta... (Enter envia, Shift+Enter salto de linea)"
             }
           />
 
-          <button
-            type="submit"
-            disabled={!canSend}
-            className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-yellow-400 text-black font-black hover:bg-yellow-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Enviar"
-          >
-            <Send size={18} />
-            Enviar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleMic}
+              className={
+                "inline-flex h-12 w-12 items-center justify-center rounded-xl border border-stone-200 bg-white hover:bg-stone-50 " +
+                (listening ? "ring-2 ring-yellow-400 animate-pulse" : "")
+              }
+              title={listening ? "Detener microfono" : "Hablar por microfono"}
+            >
+              {listening ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
+
+            <button
+              type="button"
+              onClick={clearChat}
+              className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-stone-200 bg-white hover:bg-stone-50"
+              title="Limpiar chat"
+            >
+              <Trash2 size={18} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-stone-900 text-white hover:bg-stone-800"
+              title={expanded ? "Salir pantalla completa (Esc)" : "Expandir"}
+            >
+              {expanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </button>
+
+            <button
+              type="submit"
+              disabled={!canSend}
+              className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-400 text-black hover:bg-yellow-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Enviar"
+            >
+              <Send size={18} />
+            </button>
+          </div>
         </form>
 
         <div className="mt-2 text-xs text-stone-500">

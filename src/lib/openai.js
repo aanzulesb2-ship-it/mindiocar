@@ -1,7 +1,9 @@
+import { getOpenAIKey, getOpenAIKeyError } from "@/lib/getOpenAIKey";
+
 // Simple OpenAI API wrapper
 export async function getOpenAIResponse(prompt) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('Falta la clave de OpenAI');
+  const apiKey = getOpenAIKey();
+  if (!apiKey) throw new Error(getOpenAIKeyError());
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
