@@ -13,16 +13,16 @@ function colorForLabel(label = "") {
   if (["finalizado","finalizada","entregado","entregada","completado","completada"].includes(k)) return "#16a34a";
   if (["pendiente","en proceso","proceso","diagnostico","diagnóstico"].includes(k)) return "#f59e0b";
   if (["pausado","suspendido","detenido"].includes(k)) return "#64748b";
-  if (["anulado","cancelado"].includes(k)) return "#ef4444";
+  if (["anulado","cancelado"].includes(k)) return "#e0b400";
 
   // Prioridades
-  if (k === "urgente") return "#dc2626";
+  if (k === "urgente") return "#ffcd11";
   if (k === "alta") return "#f97316";
   if (k === "media") return "#eab308";
   if (k === "baja") return "#94a3b8";
 
   // fallback estable
-  const palette = ["#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#3b82f6","#a855f7","#64748b"];
+  const palette = ["#ffcd11","#f97316","#eab308","#22c55e","#06b6d4","#3b82f6","#a855f7","#64748b"];
   let sum = 0;
   for (let i = 0; i < k.length; i++) sum += k.charCodeAt(i);
   return palette[sum % palette.length];

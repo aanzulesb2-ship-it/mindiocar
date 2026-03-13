@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FileText, Plus, Users, BarChart3, Home, Settings, FilePdf, Bot } from 'lucide-react';
+import { FileText, Plus, Users, BarChart3, Home, Settings, FilePdf, Bot, Database } from 'lucide-react';
 
 
 import { useAuth } from '../../components/AuthContext';
@@ -12,6 +12,7 @@ export default function Sidebar() {
     { href: '/facturas', icon: BarChart3, label: 'Facturas' },
     { href: '/facturacion/nueva-factura', icon: Plus, label: 'Crear factura' },
     { href: '/pdf', icon: FilePdf, label: 'PDFs' },
+    { href: '/motores', icon: Database, label: 'Motores' },
     { href: '/settings', icon: Settings, label: 'Configuración' },
     { href: '/asistente-ai', icon: Bot, label: 'Agente Mecánico' },
   ];
@@ -20,7 +21,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-white shadow-lg border-r border-stone-200 flex flex-col">
       <div className="p-6 border-b border-stone-200">
-        <h2 className="text-xl font-bold text-stone-900">Rectificadora Suárez</h2>
+        <h2 className="text-xl font-bold text-stone-900">Rectificadora Mindiocar</h2>
         <p className="text-sm text-stone-600 mt-1">Sistema de Gestión</p>
       </div>
 
@@ -55,3 +56,5 @@ export default function Sidebar() {
     </aside>
   );
 }
+
+

@@ -4,7 +4,7 @@ import { AuthProvider } from '@/components/AuthContext';
 import Topbar from '@/components/Topbar';
 
 export const metadata = {
-  title: 'Gestor | Rectificadora Suarez',
+  title: 'Gestor | Rectificadora Mindiocar',
 };
 
 export default function GestorLayout({ children }) {
@@ -16,7 +16,7 @@ export default function GestorLayout({ children }) {
             <Topbar />
             <header className="flex flex-col items-center py-8">
               <h1 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter drop-shadow-sm">
-                Gestor <span className="text-red-600">Suarez</span>
+                Gestor <span className="text-red-600">Mindiocar</span>
               </h1>
               <div className="w-20 h-1 bg-red-600 mt-2 rounded-full"></div>
             </header>
@@ -27,7 +27,7 @@ export default function GestorLayout({ children }) {
           <footer className="bg-linear-to-t from-stone-200 to-stone-100 border-t border-stone-200 mt-16">
             <div className="max-w-5xl mx-auto px-6 py-8">
               <div className="text-center text-stone-600 text-sm">
-                <p>&copy; 2026 Rectificadora Suárez. Todos los derechos reservados.</p>
+                <p>&copy; 2026 Rectificadora Mindiocar. Todos los derechos reservados.</p>
                 <p className="mt-2">
                   Sistema de gestión desarrollado para optimizar procesos de rectificación de motores.
                 </p>
@@ -40,4 +40,6 @@ export default function GestorLayout({ children }) {
     </AuthProvider>
   );
 }
+
+
 

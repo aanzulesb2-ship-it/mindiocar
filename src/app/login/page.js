@@ -45,7 +45,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6 border border-stone-200">
         <h1 className="text-2xl font-black italic uppercase tracking-tighter text-center">
-          Rectificadora <span className="text-red-600">Suarez</span>
+          Rectificadora <span className="text-red-600">Mindiocar</span>
         </h1>
         <p className="text-sm text-stone-600 text-center mt-2">Iniciar sesión</p>
 
@@ -86,3 +86,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

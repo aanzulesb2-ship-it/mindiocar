@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Home, Wrench, Users, FileText, BarChart3, LogOut } from "lucide-react";
+import { Home, Wrench, Users, FileText, BarChart3, LogOut, Database } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthContext";
 
@@ -91,7 +91,7 @@ export default function HomePage() {
 
           <div className="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl p-6 border border-stone-200 text-left">
             <h2 className="text-2xl font-black italic uppercase tracking-tighter text-center">
-              Rectificadora <span className="text-red-600">Suarez</span>
+              Rectificadora <span className="text-red-600">Mindiocar</span>
             </h2>
             <p className="text-sm text-stone-600 text-center mt-2">Iniciar sesión</p>
             <LoginForm />
@@ -116,8 +116,9 @@ export default function HomePage() {
     { icon: <Wrench className="w-10 h-10 text-purple-600" />, label: "Control de Taller", href: "/tareas", desc: "Motores en taller / seguimiento", roles: ["admin", "tecnico"] },
     { icon: <FileText className="w-10 h-10 text-orange-500" />, label: "Facturación", href: "/facturacion", desc: "Gestión y emisión de facturas", roles: ["admin"] },
     { icon: <FileText className="w-10 h-10 text-pink-500" />, label: "PDFs", href: "/proformas", desc: "Sube y visualiza archivos PDF", roles: ["admin", "tecnico"] },
+    { icon: <Database className="w-10 h-10 text-red-600" />, label: "Motores", href: "/motores", desc: "Catalogo y busqueda rapida de motores", roles: ["admin", "tecnico"] },
     { icon: <BarChart3 className="w-10 h-10 text-emerald-600" />, label: "Agente Mecánico", href: "/asistente-ai", desc: "Asistente inteligente para consultas", roles: ["admin", "tecnico"] },
-    { icon: <Wrench className="w-10 h-10 text-gray-600" />, label: "Configuración", href: "/settings", desc: "Opciones y ajustes del sistema", roles: ["admin"] },
+    { icon: <Wrench className="w-10 h-10 text-gray-600" />, label: "Configuración", href: "/settings", desc: "Tema y ajustes del sistema", roles: ["admin", "tecnico"] },
   ];
 
   const menu = menuAll.filter((it) => it.roles.includes(isTecnico ? "tecnico" : "admin"));
@@ -141,7 +142,7 @@ export default function HomePage() {
         </div>
 
         <h1 className="text-4xl md:text-5xl font-black text-center text-stone-900 tracking-tight">
-          Menú Principal <span className="block text-red-600 mt-2">Rectificadora Suárez</span>
+          Menú Principal <span className="block text-red-600 mt-2">Rectificadora Mindiocar</span>
         </h1>
 
         <div className="my-2 p-4 rounded-xl bg-stone-100 text-stone-700 text-base md:text-lg font-semibold shadow text-center">
@@ -153,7 +154,7 @@ export default function HomePage() {
             const Card = (
               <div className="w-full bg-white rounded-2xl shadow-xl border border-stone-200 p-8 hover:shadow-2xl transition flex flex-col items-center justify-center text-center">
                 <div className="mb-4">{item.icon}</div>
-                <div className="text-xl font-bold">{item.label}</div>
+                <div className={`text-xl font-bold ${item.action === "logout" ? "text-brand-red" : ""}`}>{item.label}</div>
                 <div className="text-stone-500 mt-2 text-sm">{item.desc}</div>
               </div>
             );
@@ -228,3 +229,5 @@ function LoginForm() {
     </form>
   );
 }
+
+

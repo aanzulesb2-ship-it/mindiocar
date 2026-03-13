@@ -6,11 +6,13 @@ import { supabase } from "@/lib/supabase";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/components/AuthContext";
 import { AlertTriangle, Trash2, Pencil, Eye, CalendarDays, Gauge, CheckCircle2 } from "lucide-react";
+import { matchesOrdenSearch } from "@/lib/ordenesSearch";
+import { buildOrdenNumberMap, formatOrdenCode } from "@/lib/ordenesDisplay";
 
 const PRIORITY_ORDER = ["urgente", "alta", "media", "baja"];
 
 const PRIORITY_META = {
-  urgente: { label: "Urgente", badge: "bg-red-600 text-white" },
+  urgente: { label: "Urgente", badge: "bg-white text-brand-red border border-red-200" },
   alta: { label: "Alta", badge: "bg-orange-500 text-white" },
   media: { label: "Media", badge: "bg-yellow-400 text-stone-900" },
   baja: { label: "Baja", badge: "bg-stone-200 text-stone-800" },
@@ -40,6 +42,7 @@ export default function GestorPage() {
   const [err, setErr] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [finishingId, setFinishingId] = useState(null);
+  const [search, setSearch] = useState("");
 
   const fetchOrdenes = async () => {
     setLoading(true);
@@ -65,11 +68,13 @@ export default function GestorPage() {
     fetchOrdenes();
   }, []);
 
-  const { grouped, completed } = useMemo(() => {
+  const { grouped, completed, numberMap } = useMemo(() => {
     const base = { urgente: [], alta: [], media: [], baja: [] };
     const done = [];
+    const map = buildOrdenNumberMap(ordenes);
 
     for (const o of ordenes) {
+      if (!matchesOrdenSearch(o, search)) continue;
       const estado = String(o.estado || "").toLowerCase().trim();
       if (estado === "completado" || estado === "finalizado" || estado === "realizado") {
         done.push(o);
@@ -89,8 +94,8 @@ export default function GestorPage() {
 
     done.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
-    return { grouped: base, completed: done };
-  }, [ordenes]);
+    return { grouped: base, completed: done, numberMap: map };
+  }, [ordenes, search]);
 
   const handleDelete = async (id) => {
     if (!isAdmin) return;
@@ -163,7 +168,7 @@ export default function GestorPage() {
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight">
-              Órdenes de Trabajo <span className="text-red-600">Rojo Potencia</span>
+              Órdenes de Trabajo
             </h1>
             <p className="text-stone-500 text-sm">
               Tablero por prioridad. Finaliza para mover a “Realizadas”.
@@ -176,6 +181,15 @@ export default function GestorPage() {
           >
             + Crear orden
           </Link>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-stone-200 p-4">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-xl border border-stone-300 px-3 py-2"
+            placeholder="Buscar por motor, mecanico, fecha o cliente..."
+          />
         </div>
 
         {/* Tablero por prioridad */}
@@ -208,7 +222,7 @@ export default function GestorPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <div className="text-[11px] text-stone-500 uppercase font-black tracking-widest">
-                              Orden #{String(o.id).slice(0, 8)}
+                              {formatOrdenCode(numberMap.get(o.id))}
                             </div>
                             <div className="mt-1 text-lg font-black text-stone-900 truncate">
                               {o.motor || "—"}
@@ -271,7 +285,7 @@ export default function GestorPage() {
                             <button
                               onClick={() => handleDelete(o.id)}
                               disabled={deletingId === o.id}
-                              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition disabled:opacity-60"
+                              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white text-brand-red border border-red-200 font-semibold hover:bg-red-50 transition disabled:opacity-60"
                             >
                               <Trash2 size={16} />
                               {deletingId === o.id ? "Eliminando..." : "Eliminar"}
@@ -305,7 +319,7 @@ export default function GestorPage() {
               completed.map((o) => (
                 <div key={o.id} className="p-4 rounded-2xl border border-stone-200 bg-stone-50" style={{ borderWidth: "0.5px" }}>
                   <div className="text-[11px] text-stone-500 uppercase font-black tracking-widest">
-                    Orden #{String(o.id).slice(0, 8)}
+                    {formatOrdenCode(numberMap.get(o.id))}
                   </div>
                   <div className="mt-1 text-lg font-black text-stone-900 truncate">
                     {o.motor || "—"}
@@ -331,3 +345,5 @@ export default function GestorPage() {
     </ProtectedRoute>
   );
 }
+
+

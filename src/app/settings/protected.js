@@ -3,7 +3,7 @@ import SettingsPage from './page';
 
 export default function SettingsProtected() {
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requiredRole={["admin", "tecnico"]}>
       <SettingsPage />
     </ProtectedRoute>
   );

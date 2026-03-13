@@ -1,7 +1,7 @@
-﻿
+
 
 :root {
-  --suarez-red: #FF2800;
+  --mindiocar-yellow: #FFCD11;
 }
 
 body {
@@ -12,11 +12,11 @@ body {
 }
 
 /* Marca de agua suave */
-.bg-suarez {
+.bg-mindiocar {
   background-color: rgba(255,255,255,0.9);
 }
 
-.input-suarez {
+.input-mindiocar {
   width: 100%;
   padding: 0.75rem;
   background: #fff;
@@ -25,21 +25,21 @@ body {
   outline: none;
   transition: all 0.2s;
 }
-.input-suarez:focus {
-  border-color: #dc2626;
+.input-mindiocar:focus {
+  border-color: #e0b400;
 }
-.btn-suarez {
-  background-color: #dc2626;
-  color: #fff;
+.btn-mindiocar {
+  background-color: #ffcd11;
+  color: #1c1917;
   font-weight: bold;
   padding: 0.75rem 1.5rem;
   border-radius: 0.75rem;
-  box-shadow: 0 2px 8px 0 rgba(220,38,38,0.08);
+  box-shadow: 0 2px 8px 0 rgba(255, 205, 17, 0.22);
   transition: all 0.2s;
 }
-.btn-suarez:hover {
-  background-color: #b91c1c;
+.btn-mindiocar:hover {
+  background-color: #e0b400;
 }
-.btn-suarez:active {
+.btn-mindiocar:active {
   transform: scale(0.95);
 }

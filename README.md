@@ -1,6 +1,6 @@
-# ERP Rectificadora Suárez
+# ERP Rectificadora Mindiocar
 
-Sistema de gestión de tareas y órdenes de trabajo para Rectificadora Suárez, desarrollado con Next.js, Supabase y Tailwind CSS.
+Sistema de gestión de tareas y órdenes de trabajo para Rectificadora Mindiocar, desarrollado con Next.js, Supabase y Tailwind CSS.
 
 ## 🚀 Características
 
@@ -8,7 +8,7 @@ Sistema de gestión de tareas y órdenes de trabajo para Rectificadora Suárez, 
 - **Gestión de órdenes** con IA integrada (Gemini)
 - **Dashboard** con estadísticas en tiempo real
 - **Facturación** (solo para administradores)
-- **Interfaz moderna** con diseño "Rojo Potencia"
+- **Interfaz moderna** con diseño "Amarillo Caterpillar"
 
 ## 🛠️ Tecnologías
 
@@ -83,9 +83,9 @@ src/
 
 ## 🎨 Diseño
 
-El diseño sigue la identidad "Rojo Potencia" de Rectificadora Suárez Ecuador con:
+El diseño sigue la identidad "Amarillo Caterpillar" de Rectificadora Mindiocar Ecuador con:
 
-- Colores rojo (#DC2626) y piedra (#F5F5F4)
+- Colores amarillo Caterpillar (#FFCD11) y piedra (#F5F5F4)
 - Tipografía moderna y bold
 - Bordes redondeados (rounded-4xl)
 - Sombras sutiles y transiciones suaves
@@ -107,3 +107,5 @@ El diseño sigue la identidad "Rojo Potencia" de Rectificadora Suárez Ecuador c
 3. Commit tus cambios (`git commit -am 'Agrega nueva funcionalidad'`)
 4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
 5. Abre un Pull Request
+
+

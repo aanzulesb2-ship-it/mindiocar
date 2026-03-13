@@ -1,13 +1,21 @@
 'use client'
 import { LucideSearch, LucideRefreshCcw, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useMemo, useState } from 'react'
 
 import { useAuth } from '@/components/AuthContext';
 import { useOrdenes } from '@/components/OrdenesContext';
+import { matchesOrdenSearch } from '@/lib/ordenesSearch';
 export default function ListaOrdenes() {
-  
+  const router = useRouter()
   const { role } = useAuth();const { ordenes, updateOrden, loading } = useOrdenes();
+  const [search, setSearch] = useState("")
   console.log('Render ListaOrdenes', { ordenes, loading });
+
+  const filteredOrdenes = useMemo(
+    () => (Array.isArray(ordenes) ? ordenes.filter((orden) => matchesOrdenSearch(orden, search)) : []),
+    [ordenes, search]
+  );
 
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen text-lg text-red-600">Cargando órdenes...</div>;
@@ -31,7 +39,9 @@ export default function ListaOrdenes() {
           <LucideSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
           <input
             type="text"
-            placeholder="Buscar motor o cliente..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por motor, mecanico, fecha o cliente..."
             className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500/20 transition-all shadow"
           />
         </div>
@@ -44,18 +54,16 @@ export default function ListaOrdenes() {
               <th className="py-4 text-[11px] font-black text-stone-400 uppercase tracking-widest">Orden #</th>
               <th className="py-4 text-[11px] font-black text-stone-400 uppercase tracking-widest">Cliente</th>
               <th className="py-4 text-[11px] font-black text-stone-400 uppercase tracking-widest">Motor</th>
-              <th className="py-4 text-[11px] font-black text-stone-400 uppercase tracking-widest">Precio</th>
               <th className="py-4 text-[11px] font-black text-stone-400 uppercase tracking-widest">Estado</th>
               <th className="py-4 text-[11px] font-black text-stone-400 uppercase tracking-widest">Acción</th>
             </tr>
           </thead>
           <tbody className="text-sm">
-            {ordenes.map((orden) => (
+            {filteredOrdenes.map((orden) => (
               <tr key={orden.id} className="border-b border-stone-50 hover:bg-red-50/40 transition-colors group">
                 <td className="py-4 font-bold text-stone-800 group-hover:text-red-600 transition-colors">#{orden.id}</td>
                 <td className="py-4 text-stone-600 font-medium">{orden.cliente}</td>
                 <td className="py-4 text-stone-600 font-medium">{orden.motor}</td>
-                <td className="py-4 font-bold text-green-600">S/ {orden.precio || '0.00'}</td>
                 <td className="py-4">
                   <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
                     orden.estado === 'En Proceso' ? 'bg-amber-100 text-amber-700' : 

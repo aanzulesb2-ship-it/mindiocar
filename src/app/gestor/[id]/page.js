@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/components/AuthContext";
+import { formatOrdenCode } from "@/lib/ordenesDisplay";
 
 function toArray(x) {
   if (!x) return [];
@@ -18,6 +19,13 @@ function onlyChecked(datosVino) {
   return Object.entries(datosVino)
     .filter(([, v]) => v === true)
     .map(([k]) => k);
+}
+
+function parseTasks(value) {
+  return String(value || "")
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 export default function GestorDetalleOrden() {
@@ -33,8 +41,10 @@ export default function GestorDetalleOrden() {
   const [loading, setLoading] = useState(true);
   const [loadingFotos, setLoadingFotos] = useState(true);
   const [error, setError] = useState(null);
+  const [ordenCode, setOrdenCode] = useState("000");
 
   const checkedItems = useMemo(() => onlyChecked(orden?.datos_vino), [orden]);
+  const tareas = useMemo(() => parseTasks(orden?.observaciones), [orden]);
 
   useEffect(() => {
     if (!id) return;
@@ -54,6 +64,16 @@ export default function GestorDetalleOrden() {
         setOrden(null);
       } else {
         setOrden(data);
+      }
+
+      const { data: allRows } = await supabase
+        .from("ordenes")
+        .select("id, created_at")
+        .order("created_at", { ascending: true });
+
+      if (Array.isArray(allRows)) {
+        const index = allRows.findIndex((row) => row.id === id);
+        setOrdenCode(String(index + 1).padStart(3, "0"));
       }
       setLoading(false);
     };
@@ -102,7 +122,8 @@ export default function GestorDetalleOrden() {
       <div className="space-y-6 max-w-5xl mx-auto p-6">
         <div className="flex justify-between items-center gap-3 flex-wrap">
           <h1 className="text-2xl font-black">
-            Orden <span className="text-red-600">#{String(id).slice(0, 8)}</span>
+            <span className="text-red-600">{formatOrdenCode(ordenCode)}</span>
+            <span className="ml-3 text-stone-500 text-lg">#{ordenCode}</span>
           </h1>
 
           <div className="flex gap-2">
@@ -127,13 +148,25 @@ export default function GestorDetalleOrden() {
           <div><b>Tipo:</b> {orden.tipo_motor || "-"}</div>
           <div><b>Estado:</b> {orden.estado || "-"}</div>
           <div><b>Prioridad:</b> {orden.prioridad || "-"}</div>
-          <div><b>Fecha estimada:</b> {orden.fecha_estimada ? String(orden.fecha_estimada) : "-"}</div>
-          <div><b>Precio:</b> {orden.precio != null ? Number(orden.precio).toFixed(2) : "-"}</div>
+          <div><b>Fecha:</b> {orden.fecha_estimada ? String(orden.fecha_estimada) : "-"}</div>
         </div>
 
         <div className="bg-white rounded-2xl border border-stone-200 p-6">
-          <div className="font-black">Observaciones</div>
-          <p className="mt-2 whitespace-pre-wrap text-stone-700">{orden.observaciones || "-"}</p>
+          <div className="font-black">Tareas</div>
+          {tareas.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {tareas.map((tarea, index) => (
+                <span
+                  key={`${tarea}-${index}`}
+                  className="px-3 py-2 rounded-2xl text-sm font-semibold bg-red-50 text-red-900 border border-red-200"
+                >
+                  {tarea}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-stone-500">No hay tareas registradas.</p>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl border border-stone-200 p-6">

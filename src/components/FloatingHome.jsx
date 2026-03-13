@@ -27,7 +27,7 @@ export default function FloatingHome() {
       <button
         type="button"
         onClick={logout}
-        className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-red-600 text-white shadow-xl hover:bg-red-700 transition font-bold"
+        className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white text-brand-red border border-red-200 shadow-xl hover:bg-red-50 transition font-bold"
         title="Cerrar sesión"
       >
         <LogOut size={18} />

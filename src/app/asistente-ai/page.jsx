@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Maximize2, Minimize2, Send, Trash2, Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Send, Trash2, Maximize2, Minimize2 } from "lucide-react";
 
 const SYSTEM_HINT =
-  "Eres el asistente técnico de Rectificadora Suárez. Responde claro, corto y útil. " +
+  "Eres el asistente técnico de Rectificadora Mindiocar. Responde claro, corto y útil. " +
   "Cuando hables de motores, sé preciso. Si faltan datos, pregunta 1 cosa a la vez.";
 
 function getSpeechRecognition() {
@@ -12,37 +12,37 @@ function getSpeechRecognition() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
 }
 
-export default function AsistenteAIPage() {
+export default function AsistenteMecanico() {
   const [expanded, setExpanded] = useState(false);
-
-  // ✅ Un solo input para escribir NORMAL
   const [input, setInput] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
-  const recogRef = useRef(null);
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [micError, setMicError] = useState("");
 
-  const [messages, setMessages] = useState(() => [
-    {
-      role: "assistant",
-      content:
-        "Hola 👋 Soy el asistente de Rectificadora Suárez. ¿Qué motor estás trabajando hoy?",
-    },
-  ]);
-
+  const recognitionRef = useRef(null);
+  const finalTranscriptRef = useRef("");
+  const liveTranscriptRef = useRef("");
   const listRef = useRef(null);
   const inputRef = useRef(null);
 
-  const canSend = useMemo(
-    () => input.trim().length > 0 && !loading,
-    [input, loading]
-  );
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      content:
+        "Hola 👋 Soy el asistente de Rectificadora Mindiocar. ¿Qué motor estás trabajando hoy?",
+    },
+  ]);
+
+  const canSend = useMemo(() => {
+    return input.trim().length > 0 && !loading && !listening;
+  }, [input, loading, listening]);
 
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages, expanded]);
+  }, [messages, expanded, loading, listening, liveTranscript]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -52,74 +52,130 @@ export default function AsistenteAIPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // ✅ SpeechRecognition seguro: NO rompe escritura
   useEffect(() => {
     const SR = getSpeechRecognition();
     if (!SR) return;
 
     const rec = new SR();
-
-    // Importante: si está continuous/interim en true suele pelear con el textarea
     rec.continuous = false;
-    rec.interimResults = false;
+    rec.interimResults = true;
     rec.lang = "es-EC";
+    rec.maxAlternatives = 1;
 
-    rec.onresult = (event) => {
-      const text =
-        event?.results?.[0]?.[0]?.transcript ? event.results[0][0].transcript : "";
-      const clean = String(text || "").trim();
-      if (!clean) return;
-
-      // ✅ Agrega lo dictado al final, sin sobrescribir lo que escribes
-      setInput((prev) => (prev ? (prev + " " + clean) : clean));
-      inputRef.current?.focus();
+    rec.onstart = () => {
+      finalTranscriptRef.current = "";
+      liveTranscriptRef.current = "";
+      setLiveTranscript("");
+      setMicError("");
+      setListening(true);
     };
 
-    rec.onerror = () => {
+    rec.onresult = (event) => {
+      let finalText = "";
+      let interimText = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const text = event.results[i]?.[0]?.transcript || "";
+        if (event.results[i].isFinal) {
+          finalText += text + " ";
+        } else {
+          interimText += text + " ";
+        }
+      }
+
+      if (finalText.trim()) {
+        finalTranscriptRef.current = (
+          finalTranscriptRef.current +
+          " " +
+          finalText
+        ).trim();
+      }
+
+      const screenText = [finalTranscriptRef.current, interimText.trim()]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      liveTranscriptRef.current = screenText;
+      setLiveTranscript(screenText);
+    };
+
+    rec.onerror = (event) => {
       setListening(false);
+      setMicError(event?.error || "No se pudo usar el micrófono");
     };
 
     rec.onend = () => {
+      const dictated =
+        liveTranscriptRef.current.trim() || finalTranscriptRef.current.trim();
+
+      if (dictated) {
+        setInput((prev) => {
+          const base = prev.trim();
+          return base ? `${base} ${dictated}` : dictated;
+        });
+      }
+
+      finalTranscriptRef.current = "";
+      liveTranscriptRef.current = "";
+      setLiveTranscript("");
       setListening(false);
-      inputRef.current?.focus();
+
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
     };
 
-    recogRef.current = rec;
+    recognitionRef.current = rec;
 
     return () => {
       try {
         rec.stop();
       } catch {}
-      recogRef.current = null;
+      recognitionRef.current = null;
     };
   }, []);
 
-  const toggleMic = () => {
-    const rec = recogRef.current;
+  const startMic = async () => {
+    const rec = recognitionRef.current;
+
     if (!rec) {
       alert("Tu navegador no soporta dictado por micrófono. Usa Chrome o Edge.");
       return;
     }
 
-    // si estaba grabando, detener
-    if (listening) {
-      try {
-        rec.stop();
-      } catch {}
-      setListening(false);
-      inputRef.current?.focus();
-      return;
-    }
+    setMicError("");
+    setLiveTranscript("");
+    finalTranscriptRef.current = "";
+    liveTranscriptRef.current = "";
 
     try {
-      setListening(true);
-      rec.start(); // ✅ solo 1 frase (estable)
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      rec.start();
     } catch {
       setListening(false);
+      setMicError("No diste permiso al micrófono o el micrófono no está disponible.");
     }
   };
 
+  const stopMic = () => {
+    const rec = recognitionRef.current;
+    if (!rec) return;
+    try {
+      rec.stop();
+    } catch {}
+  };
+
+  const toggleMic = () => {
+    if (listening) {
+      stopMic();
+      return;
+    }
+    startMic();
+  };
+
   const clearChat = () => {
+    stopMic();
     setMessages([
       {
         role: "assistant",
@@ -127,34 +183,51 @@ export default function AsistenteAIPage() {
       },
     ]);
     setInput("");
-    inputRef.current?.focus();
+    setLiveTranscript("");
+    finalTranscriptRef.current = "";
+    liveTranscriptRef.current = "";
+    setMicError("");
+
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
   };
 
   const send = async () => {
     const text = input.trim();
-    if (!text || loading) return;
+    if (!text || loading || listening) return;
 
     setLoading(true);
     setInput("");
 
-    const next = [...messages, { role: "user", content: text }];
+    const nextMessages = [...messages, { role: "user", content: text }];
+    setMessages(nextMessages);
 
     try {
       const res = await fetch("/api/asistente", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [{ role: "system", content: SYSTEM_HINT }, ...next],
+          messages: [{ role: "system", content: SYSTEM_HINT }, ...nextMessages],
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Error consultando asistente");
 
-      setMessages([...next, { role: "assistant", content: data.content }]);
+      if (!res.ok) {
+        throw new Error(data?.error || "Error consultando asistente");
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: data.content || "No hubo respuesta del asistente.",
+        },
+      ]);
     } catch (e) {
-      setMessages([
-        ...next,
+      setMessages((prev) => [
+        ...prev,
         {
           role: "assistant",
           content:
@@ -164,7 +237,9 @@ export default function AsistenteAIPage() {
       ]);
     } finally {
       setLoading(false);
-      inputRef.current?.focus();
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
     }
   };
 
@@ -196,14 +271,13 @@ export default function AsistenteAIPage() {
 
   return (
     <Shell>
-      {/* Header */}
       <div className="flex items-center justify-between gap-3 px-4 md:px-6 py-4 border-b border-stone-200 bg-white">
         <div>
           <div className="text-xs uppercase tracking-widest font-black text-stone-500">
             Asistente AI
           </div>
           <div className="text-xl md:text-2xl font-black text-stone-900">
-            Rectificadora <span className="text-red-600">Suárez</span>
+            Rectificadora <span className="text-yellow-400">Mindiocar</span>
           </div>
         </div>
 
@@ -213,7 +287,7 @@ export default function AsistenteAIPage() {
             onClick={toggleMic}
             className={
               "inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 font-semibold " +
-              (listening ? "ring-2 ring-red-500" : "")
+              (listening ? "ring-2 ring-yellow-400 animate-pulse" : "")
             }
             title={listening ? "Detener micrófono" : "Hablar por micrófono"}
           >
@@ -243,7 +317,6 @@ export default function AsistenteAIPage() {
         </div>
       </div>
 
-      {/* Body */}
       <div className="p-4 md:p-6">
         <div
           ref={listRef}
@@ -258,7 +331,7 @@ export default function AsistenteAIPage() {
                 className={
                   "max-w-[92%] md:max-w-[75%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed " +
                   (msg.role === "user"
-                    ? "bg-red-600 text-white shadow"
+                    ? "bg-yellow-400 text-black shadow"
                     : "bg-stone-100 text-stone-900 border border-stone-200")
                 }
               >
@@ -267,14 +340,29 @@ export default function AsistenteAIPage() {
             </div>
           ))}
 
-          {loading ? (
+          {listening && (
             <div className="mb-3 flex justify-start">
-              <div className="max-w-[75%] rounded-2xl px-4 py-3 text-sm bg-stone-100 text-stone-700 border border-stone-200">
-                Escribiendo…
+              <div className="max-w-[75%] rounded-2xl px-4 py-3 text-sm bg-yellow-50 text-stone-800 border border-yellow-300 whitespace-pre-wrap">
+                🎤 Escuchando...
+                {liveTranscript ? `\n${liveTranscript}` : ""}
               </div>
             </div>
-          ) : null}
+          )}
+
+          {loading && (
+            <div className="mb-3 flex justify-start">
+              <div className="max-w-[75%] rounded-2xl px-4 py-3 text-sm bg-stone-100 text-stone-700 border border-stone-200">
+                Escribiendo...
+              </div>
+            </div>
+          )}
         </div>
+
+        {micError && (
+          <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {micError}
+          </div>
+        )}
 
         <form onSubmit={onSubmit} className="flex items-end gap-2">
           <textarea
@@ -283,18 +371,19 @@ export default function AsistenteAIPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDownInput}
             rows={2}
-            className="flex-1 resize-none rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-red-500"
+            disabled={listening}
+            className="flex-1 resize-none rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-yellow-400 disabled:bg-stone-100 disabled:text-stone-500"
             placeholder={
               listening
-                ? "Hablando… (dicta una frase, se agregará aquí)"
-                : "Escribe tu pregunta… (Enter envía, Shift+Enter salto de línea)"
+                ? "Dictando por micrófono..."
+                : "Escribe tu pregunta... (Enter envía, Shift+Enter salto de línea)"
             }
           />
 
           <button
             type="submit"
             disabled={!canSend}
-            className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-red-600 text-white font-black hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-yellow-400 text-black font-black hover:bg-yellow-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
             title="Enviar"
           >
             <Send size={18} />
@@ -303,7 +392,7 @@ export default function AsistenteAIPage() {
         </form>
 
         <div className="mt-2 text-xs text-stone-500">
-          Tip: Dime el motor + el problema (ej: “1NZ: humo azul al acelerar”).
+          Tip: Dime el motor + el problema. Ejemplo: 1NZ humo azul al acelerar.
         </div>
       </div>
     </Shell>

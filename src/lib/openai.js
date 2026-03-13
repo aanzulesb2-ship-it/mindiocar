@@ -16,6 +16,15 @@ export async function getOpenAIResponse(prompt) {
     })
   });
   const data = await res.json();
+  if (!res.ok) {
+    const code = data?.error?.code;
+    if (code === 'insufficient_quota' || res.status === 429) {
+      throw new Error(
+        'Tu clave de OpenAI es valida, pero no hay cuota activa en el proyecto (Billing/Usage).'
+      );
+    }
+    throw new Error(data?.error?.message || 'Error OpenAI');
+  }
   return data.choices?.[0]?.message?.content || 'Sin respuesta.';
 }
 

@@ -104,7 +104,7 @@ export default function GestionClientes() {
 
   return (
     <ProtectedRoute requiredRole="admin">
-      <div className="card-suarez">
+      <div className="card-mindiocar">
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 mb-4 px-4 py-2 text-stone-600 hover:text-stone-900 transition-colors"
@@ -125,7 +125,7 @@ export default function GestionClientes() {
 
           <button
             onClick={() => setShowModal(true)}
-            className="btn-suarez py-3 px-6 text-xs"
+            className="btn-mindiocar py-3 px-6 text-xs"
             disabled={role !== 'admin'}
           >
             <LucideUserPlus size={18} />
@@ -353,5 +353,6 @@ export default function GestionClientes() {
     </ProtectedRoute>
   )
 }
+
 
 

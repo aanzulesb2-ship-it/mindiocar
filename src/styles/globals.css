@@ -1,12 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --primary-red: #dc2626;
-  --primary-dark: #991b1b;
+  --primary-yellow: #ffd60a;
+  --primary-dark: #ffb800;
   --stone-light: #f5f5f4;
   --stone-dark: #78716c;
   --success-green: #16a34a;
   --warning-yellow: #f59e0b;
+  --app-accent: #ffd60a;
+  --app-accent-strong: #ffb800;
 }
 
 @layer base {
@@ -17,22 +19,74 @@
 }
 
 @layer components {
-  .card-suarez {
+  .card-mindiocar {
     background-color: white;
     border-radius: 1rem;
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
     border: 1px solid #f5f5f4;
     padding: 2rem;
   }
-  .btn-suarez {
-    background-color: #dc2626;
-    color: white;
+  .btn-mindiocar {
+    background-color: #ffcd11;
+    color: #1c1917;
     font-weight: 700;
     padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
     transition: all 0.2s;
   }
-  .btn-suarez:hover {
-    background-color: #b91c1c;
+  .btn-mindiocar:hover {
+    background-color: #e0b400;
   }
 }
+
+@layer utilities {
+  .text-brand-red {
+    color: #dc2626 !important;
+  }
+  .text-red-600 {
+    color: #ffd60a !important;
+  }
+  .text-red-500 {
+    color: #ffe14d !important;
+  }
+  .bg-red-50 {
+    background-color: #fff9e6 !important;
+  }
+  .bg-red-100 {
+    background-color: #fff1bf !important;
+  }
+  .bg-red-600 {
+    background-color: #ffd60a !important;
+  }
+  .bg-red-700 {
+    background-color: #ffb800 !important;
+  }
+  .border-red-200 {
+    border-color: #ffe78c !important;
+  }
+  .focus\:ring-red-500:focus {
+    --tw-ring-color: #ffd60a !important;
+  }
+  .hover\:bg-red-700:hover {
+    background-color: #ffb800 !important;
+  }
+  .hover\:bg-red-50:hover {
+    background-color: #fff9e6 !important;
+  }
+  .hover\:text-red-600:hover {
+    color: #ffd60a !important;
+  }
+  .hover\:from-red-700:hover {
+    --tw-gradient-from: #ffb800 var(--tw-gradient-from-position) !important;
+  }
+  .hover\:to-red-500:hover {
+    --tw-gradient-to: #ffe14d var(--tw-gradient-to-position) !important;
+  }
+  .from-red-600 {
+    --tw-gradient-from: #ffd60a var(--tw-gradient-from-position) !important;
+  }
+  .to-red-400 {
+    --tw-gradient-to: #ffe14d var(--tw-gradient-to-position) !important;
+  }
+}
+

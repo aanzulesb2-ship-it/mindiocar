@@ -69,7 +69,7 @@ export default function Catalogos() {
   }
 
   return (
-    <div className="card-suarez">
+    <div className="card-mindiocar">
       <button 
         onClick={() => router.back()}
         className="flex items-center gap-2 mb-4 px-4 py-2 text-stone-600 hover:text-stone-900 transition-colors"
@@ -113,7 +113,7 @@ export default function Catalogos() {
       </div>
 
       <div className="flex justify-between items-center mb-6">
-        <label className="btn-suarez py-3 px-6 text-xs cursor-pointer">
+        <label className="btn-mindiocar py-3 px-6 text-xs cursor-pointer">
           <Upload size={18} />
           Subir {fileType === 'catalogos' ? 'PDF' : 'Archivo'}
           <input 
@@ -162,7 +162,7 @@ export default function Catalogos() {
             </div>
             <button 
               onClick={() => openPdf(file.name)}
-              className="w-full btn-suarez py-2 px-4 text-xs"
+              className="w-full btn-mindiocar py-2 px-4 text-xs"
             >
               <FileText size={16} />
               Ver PDF
@@ -177,5 +177,6 @@ export default function Catalogos() {
     </div>
   )
 }
+
 
 

@@ -84,6 +84,31 @@ export function OrdenesProvider({ children }) {
     return { ok: true, data };
   }, []);
 
+  const updateOrden = useCallback(async (id, patch) => {
+    setSaving(true);
+    setError(null);
+
+    const { data, error } = await supabase
+      .from("ordenes")
+      .update({
+        ...(patch || {}),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (error) {
+      setError(error.message);
+      setSaving(false);
+      return { ok: false, error: error.message };
+    }
+
+    setOrdenes((prev) => prev.map((item) => (item.id === id ? { ...item, ...data } : item)));
+    setSaving(false);
+    return { ok: true, data };
+  }, []);
+
   const value = useMemo(() => {
     return {
       ordenes,
@@ -92,9 +117,10 @@ export function OrdenesProvider({ children }) {
       error,
       fetchOrdenes,
       createOrden,
+      updateOrden,
       setOrdenes,
     };
-  }, [ordenes, loading, saving, error, fetchOrdenes, createOrden]);
+  }, [ordenes, loading, saving, error, fetchOrdenes, createOrden, updateOrden]);
 
   return <OrdenesContext.Provider value={value}>{children}</OrdenesContext.Provider>;
 }
