@@ -1,6 +1,7 @@
 ﻿import OpenAI from "openai";
 
 export const runtime = "nodejs";
+const model = process.env.OPENAI_CHAT_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -43,7 +44,7 @@ export async function POST(req) {
       }));
 
     const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+      model,
       input,
     });
 
