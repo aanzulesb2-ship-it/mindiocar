@@ -6,7 +6,6 @@ export default function SidebarGestor() {
   const { role } = useAuth();
   return (
     <aside className='sidebar'>
-      <h2>Gestor Mindiocar</h2>
       <nav>
         <Link href='/gestor'>Panel</Link>
         <Link href='/gestor/tareas'>Tareas</Link>

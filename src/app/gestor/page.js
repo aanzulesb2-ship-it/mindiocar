@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { AlertTriangle, CalendarDays, Eye, Gauge, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/components/AuthContext";
-import { AlertTriangle, Trash2, Pencil, Eye, CalendarDays, Gauge, CheckCircle2 } from "lucide-react";
 import { matchesOrdenSearch } from "@/lib/ordenesSearch";
 import { buildOrdenNumberMap, formatOrdenCode } from "@/lib/ordenesDisplay";
+import { getOrdenProgress, parseTaskState, serializeTaskState } from "@/lib/ordenTaskProgress";
 
 const PRIORITY_ORDER = ["urgente", "alta", "media", "baja"];
 
@@ -25,7 +26,7 @@ function normalizePriority(p) {
 }
 
 function fmtDate(d) {
-  if (!d) return "—";
+  if (!d) return "-";
   try {
     return new Date(d).toLocaleDateString();
   } catch {
@@ -41,16 +42,16 @@ export default function GestorPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [finishingId, setFinishingId] = useState(null);
+  const [restoringId, setRestoringId] = useState(null);
   const [search, setSearch] = useState("");
 
-  const fetchOrdenes = async () => {
-    setLoading(true);
+  const fetchOrdenes = async (withLoading = true) => {
+    if (withLoading) setLoading(true);
     setErr(null);
 
     const { data, error } = await supabase
       .from("ordenes")
-      .select("id, cliente, mecanico_dueno, motor, tipo_motor, prioridad, fecha_estimada, estado, created_at")
+      .select("id, cliente, mecanico_dueno, motor, tipo_motor, prioridad, fecha_estimada, estado, created_at, observaciones")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -65,7 +66,32 @@ export default function GestorPage() {
   };
 
   useEffect(() => {
-    fetchOrdenes();
+    let cancelled = false;
+
+    const loadInitialOrdenes = async () => {
+      const { data, error } = await supabase
+        .from("ordenes")
+        .select("id, cliente, mecanico_dueno, motor, tipo_motor, prioridad, fecha_estimada, estado, created_at, observaciones")
+        .order("created_at", { ascending: false });
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error(error);
+        setErr(error.message || "No se pudieron cargar las órdenes.");
+        setOrdenes([]);
+      } else {
+        setOrdenes(data || []);
+      }
+
+      setLoading(false);
+    };
+
+    void loadInitialOrdenes();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const { grouped, completed, numberMap } = useMemo(() => {
@@ -73,19 +99,21 @@ export default function GestorPage() {
     const done = [];
     const map = buildOrdenNumberMap(ordenes);
 
-    for (const o of ordenes) {
-      if (!matchesOrdenSearch(o, search)) continue;
-      const estado = String(o.estado || "").toLowerCase().trim();
+    for (const orden of ordenes) {
+      if (!matchesOrdenSearch(orden, search)) continue;
+      const estado = String(orden.estado || "").toLowerCase().trim();
+
       if (estado === "completado" || estado === "finalizado" || estado === "realizado") {
-        done.push(o);
+        done.push(orden);
         continue;
       }
-      const pr = normalizePriority(o.prioridad);
-      base[pr].push({ ...o, prioridad: pr });
+
+      const prioridad = normalizePriority(orden.prioridad);
+      base[prioridad].push({ ...orden, prioridad });
     }
 
-    for (const k of PRIORITY_ORDER) {
-      base[k].sort((a, b) => {
+    for (const key of PRIORITY_ORDER) {
+      base[key].sort((a, b) => {
         const da = a.fecha_estimada ? new Date(a.fecha_estimada).getTime() : new Date(a.created_at || 0).getTime();
         const db = b.fecha_estimada ? new Date(b.fecha_estimada).getTime() : new Date(b.created_at || 0).getTime();
         return da - db;
@@ -99,7 +127,8 @@ export default function GestorPage() {
 
   const handleDelete = async (id) => {
     if (!isAdmin) return;
-    const ok = window.confirm("¿Eliminar esta orden?\n\nEsto borrará el registro. (Las fotos en Storage se limpian luego.)");
+
+    const ok = window.confirm("¿Eliminar esta orden?\n\nEsto borrará el registro.");
     if (!ok) return;
 
     setDeletingId(id);
@@ -111,23 +140,34 @@ export default function GestorPage() {
       alert("No se pudo eliminar.\n\nDetalle: " + (error.message || JSON.stringify(error)));
       return;
     }
+
     fetchOrdenes();
   };
 
-  const handleFinish = async (id) => {
-    const ok = window.confirm("¿Marcar esta orden como COMPLETADA?");
+  const handleRestore = async (orden) => {
+    const ok = window.confirm("¿Restaurar esta tarea para volverla a Órdenes de Trabajo?");
     if (!ok) return;
 
-    setFinishingId(id);
+    const taskState = parseTaskState(orden?.observaciones);
+
+    setRestoringId(orden.id);
     const { error } = await supabase
       .from("ordenes")
-      .update({ estado: "completado", updated_at: new Date().toISOString() })
-      .eq("id", id);
-    setFinishingId(null);
+      .update({
+        estado: "pendiente",
+        observaciones: serializeTaskState({
+          ...taskState,
+          armadoBlockDone: false,
+          armadoCabezoteDone: false,
+        }),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orden.id);
+    setRestoringId(null);
 
     if (error) {
       console.error(error);
-      alert("No se pudo finalizar.\n\nDetalle: " + (error.message || JSON.stringify(error)));
+      alert("No se pudo restaurar la tarea.");
       return;
     }
 
@@ -167,11 +207,9 @@ export default function GestorPage() {
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight">
-              Órdenes de Trabajo
-            </h1>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight">Órdenes de Trabajo</h1>
             <p className="text-stone-500 text-sm">
-              Tablero por prioridad. Finaliza para mover a “Realizadas”.
+              Tablero por prioridad con progreso visual de tareas.
             </p>
           </div>
 
@@ -188,11 +226,10 @@ export default function GestorPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-stone-300 px-3 py-2"
-            placeholder="Buscar por motor, mecanico, fecha o cliente..."
+            placeholder="Buscar por motor, mecánico, fecha o cliente..."
           />
         </div>
 
-        {/* Tablero por prioridad */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {PRIORITY_ORDER.map((key) => {
             const meta = PRIORITY_META[key];
@@ -213,87 +250,92 @@ export default function GestorPage() {
                       Sin órdenes aquí.
                     </div>
                   ) : (
-                    list.map((o) => (
-                      <div
-                        key={o.id}
-                        className="p-4 rounded-2xl border border-stone-200 hover:shadow-md transition bg-white"
-                        style={{ borderWidth: "0.5px" }}
-                      >
-                        <div className="flex items-start justify-between gap-2">
+                    list.map((orden) => {
+                      const taskState = parseTaskState(orden.observaciones);
+                      const progress = getOrdenProgress(taskState);
+
+                      return (
+                        <div
+                          key={orden.id}
+                          className="p-4 rounded-2xl border border-stone-200 hover:shadow-md transition bg-white"
+                          style={{ borderWidth: "0.5px" }}
+                        >
                           <div className="min-w-0">
                             <div className="text-[11px] text-stone-500 uppercase font-black tracking-widest">
-                              {formatOrdenCode(numberMap.get(o.id))}
+                              {formatOrdenCode(numberMap.get(orden.id))}
                             </div>
-                            <div className="mt-1 text-lg font-black text-stone-900 truncate">
-                              {o.motor || "—"}
+                            <div className={`mt-1 inline-flex text-[10px] font-black px-2 py-1 rounded-lg ${meta.badge}`}>
+                              {meta.label.toUpperCase()}
+                            </div>
+                            <div className="mt-2 h-[18px] w-[84px] rounded-lg border border-stone-300 bg-stone-100 overflow-hidden shadow-inner">
+                              <div
+                                className="h-full rounded-lg bg-gradient-to-r from-red-500 via-orange-500 to-emerald-500 transition-all duration-300"
+                                style={{ width: `${progress.totalProgress}%` }}
+                              />
+                            </div>
+                            <div className="mt-1 w-[84px] text-right text-[10px] font-bold text-stone-500">
+                              {Math.round(progress.totalProgress)}%
+                            </div>
+                            <div className="mt-2 text-lg font-black text-stone-900 truncate">
+                              {orden.motor || "-"}
                             </div>
                           </div>
 
-                          <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${meta.badge}`}>
-                            {meta.label.toUpperCase()}
-                          </span>
-                        </div>
+                          <div className="mt-3 space-y-1 text-sm text-stone-700">
+                            <div className="flex items-center gap-2">
+                              <Gauge size={14} className="text-stone-400" />
+                              <span className="font-bold">Estado:</span>
+                              <span className="truncate">{orden.estado || "pendiente"}</span>
+                            </div>
 
-                        <div className="mt-3 space-y-1 text-sm text-stone-700">
-                          <div className="flex items-center gap-2">
-                            <Gauge size={14} className="text-stone-400" />
-                            <span className="font-bold">Estado:</span>{" "}
-                            <span className="truncate">{o.estado || "pendiente"}</span>
+                            <div className="flex items-center gap-2">
+                              <CalendarDays size={14} className="text-stone-400" />
+                              <span className="font-bold">Fecha:</span>
+                              <span>{fmtDate(orden.fecha_estimada || orden.created_at)}</span>
+                            </div>
+
+                            <div className="truncate">
+                              <span className="font-bold">Cliente:</span> {orden.cliente || "-"}
+                            </div>
+                            <div className="truncate">
+                              <span className="font-bold">Mecánico/Taller:</span> {orden.mecanico_dueno || "-"}
+                            </div>
+                            <div className="text-xs text-stone-500">
+                              Tareas {progress.completedTasks}/{progress.totalTasks} | Armado {taskState.armadoDone ? "sí" : "no"}
+                            </div>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <CalendarDays size={14} className="text-stone-400" />
-                            <span className="font-bold">Fecha:</span>{" "}
-                            <span>{fmtDate(o.fecha_estimada || o.created_at)}</span>
-                          </div>
-
-                          <div className="truncate">
-                            <span className="font-bold">Cliente:</span> {o.cliente || "—"}
-                          </div>
-                          <div className="truncate">
-                            <span className="font-bold">Mecánico/Dueño:</span> {o.mecanico_dueno || "—"}
-                          </div>
-                        </div>
-
-                        <div className="mt-4 flex gap-2 flex-wrap">
-                          <Link
-                            href={`/gestor/${o.id}`}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-stone-900 text-white font-semibold hover:bg-stone-800 transition"
-                          >
-                            <Eye size={16} />
-                            Ver
-                          </Link>
-
-                          <Link
-                            href={`/ordenes/${o.id}/editar`}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-stone-200 bg-white font-semibold hover:bg-stone-50 transition"
-                          >
-                            <Pencil size={16} />
-                            Editar
-                          </Link>
-
-                          <button
-                            onClick={() => handleFinish(o.id)}
-                            disabled={finishingId === o.id}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition disabled:opacity-60"
-                          >
-                            <CheckCircle2 size={16} />
-                            {finishingId === o.id ? "Finalizando..." : "Finalizar"}
-                          </button>
-
-                          {isAdmin ? (
-                            <button
-                              onClick={() => handleDelete(o.id)}
-                              disabled={deletingId === o.id}
-                              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white text-brand-red border border-red-200 font-semibold hover:bg-red-50 transition disabled:opacity-60"
+                          <div className="mt-4 flex gap-2 flex-wrap">
+                            <Link
+                              href={`/gestor/${orden.id}`}
+                              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-stone-900 text-white font-semibold hover:bg-stone-800 transition"
                             >
-                              <Trash2 size={16} />
-                              {deletingId === o.id ? "Eliminando..." : "Eliminar"}
-                            </button>
-                          ) : null}
+                              <Eye size={16} />
+                              Ver
+                            </Link>
+
+                            <Link
+                              href={`/ordenes/${orden.id}/editar`}
+                              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-stone-200 bg-white font-semibold hover:bg-stone-50 transition"
+                            >
+                              <Pencil size={16} />
+                              Editar
+                            </Link>
+
+                            {isAdmin ? (
+                              <button
+                                onClick={() => handleDelete(orden.id)}
+                                disabled={deletingId === orden.id}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white text-brand-red border border-red-200 font-semibold hover:bg-red-50 transition disabled:opacity-60"
+                              >
+                                <Trash2 size={16} />
+                                {deletingId === orden.id ? "Eliminando..." : "Eliminar"}
+                              </button>
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -301,10 +343,9 @@ export default function GestorPage() {
           })}
         </div>
 
-        {/* Realizadas */}
         <div className="bg-white rounded-2xl shadow-xl border border-stone-200 p-4">
           <div className="flex items-center justify-between">
-            <div className="font-black text-stone-900">✅ Realizadas</div>
+            <div className="font-black text-stone-900">Realizadas</div>
             <div className="text-xs font-black px-2 py-1 rounded-lg bg-stone-100 border border-stone-200">
               {completed.length}
             </div>
@@ -316,25 +357,32 @@ export default function GestorPage() {
                 Aún no hay órdenes finalizadas.
               </div>
             ) : (
-              completed.map((o) => (
-                <div key={o.id} className="p-4 rounded-2xl border border-stone-200 bg-stone-50" style={{ borderWidth: "0.5px" }}>
+              completed.map((orden) => (
+                <div key={orden.id} className="p-4 rounded-2xl border border-stone-200 bg-stone-50" style={{ borderWidth: "0.5px" }}>
                   <div className="text-[11px] text-stone-500 uppercase font-black tracking-widest">
-                    {formatOrdenCode(numberMap.get(o.id))}
+                    {formatOrdenCode(numberMap.get(orden.id))}
                   </div>
                   <div className="mt-1 text-lg font-black text-stone-900 truncate">
-                    {o.motor || "—"}
+                    {orden.motor || "-"}
                   </div>
                   <div className="mt-1 text-sm text-stone-700 truncate">
-                    <span className="font-bold">Cliente:</span> {o.cliente || "—"}
+                    <span className="font-bold">Cliente:</span> {orden.cliente || "-"}
                   </div>
                   <div className="mt-3 flex gap-2">
                     <Link
-                      href={`/gestor/${o.id}`}
+                      href={`/gestor/${orden.id}`}
                       className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-stone-900 text-white font-semibold hover:bg-stone-800 transition"
                     >
                       <Eye size={16} />
                       Ver
                     </Link>
+                    <button
+                      onClick={() => handleRestore(orden)}
+                      disabled={restoringId === orden.id}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-stone-200 bg-white font-semibold hover:bg-stone-50 transition disabled:opacity-60"
+                    >
+                      {restoringId === orden.id ? "Restaurando..." : "Res/Tarea"}
+                    </button>
                   </div>
                 </div>
               ))
@@ -345,5 +393,3 @@ export default function GestorPage() {
     </ProtectedRoute>
   );
 }
-
-

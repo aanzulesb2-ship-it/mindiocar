@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Home, Wrench, Users, FileText, BarChart3, LogOut, Database } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -14,8 +14,6 @@ export default function HomePage() {
   // TODOS los hooks arriba
   const [now, setNow] = useState(new Date());
   const [temp, setTemp] = useState(null);
-  const [phrase, setPhrase] = useState("");
-
   const phrases = [
     "El éxito es la suma de pequeños esfuerzos repetidos cada día.",
     "La excelencia no es un acto, es un hábito.",
@@ -32,11 +30,11 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
+  const phrase = useMemo(() => {
     const today = new Date();
     const daySeed = today.getFullYear() * 1000 + today.getMonth() * 100 + today.getDate();
     const idx = (daySeed + 7) % phrases.length;
-    setPhrase(phrases[idx]);
+    return phrases[idx];
   }, [now]);
 
   useEffect(() => {
@@ -67,7 +65,7 @@ export default function HomePage() {
   // ======================
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden bg-linear-to-br from-red-50 via-stone-50 to-white">
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden bg-linear-to-br from-red-50 via-stone-50 to-white" style={{ backgroundColor: "var(--app-bg-light)" }}>
         <div className="max-w-xl w-full text-center space-y-8">
           <div className="flex flex-col items-center gap-2 mb-4">
             <div className="text-lg font-bold text-stone-700">{day}, {dateStr}</div>
@@ -130,7 +128,7 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="min-h-screen p-8 bg-linear-to-br from-red-50 via-stone-50 to-white">
+    <div className="min-h-screen p-8 bg-linear-to-br from-red-50 via-stone-50 to-white" style={{ backgroundColor: "var(--app-bg-light)" }}>
       <div className="max-w-5xl w-full mx-auto space-y-8">
         {/* Bloque de día/hora/temp en el MENÚ */}
         <div className="flex flex-col items-center gap-2 text-center">
@@ -141,7 +139,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <h1 className="text-4xl md:text-5xl font-black text-center text-stone-900 tracking-tight">
+        <h1 className="text-2xl md:text-3xl font-black text-center text-stone-900 tracking-tight">
           Menú Principal <span className="block text-red-600 mt-2">Rectificadora Mindiocar</span>
         </h1>
 

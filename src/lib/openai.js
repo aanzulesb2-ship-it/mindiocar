@@ -1,32 +1,45 @@
-import { getOpenAIKey, getOpenAIKeyError } from "@/lib/getOpenAIKey";
+import { getGroqKey, getGroqKeyError } from '@/lib/getOpenAIKey';
 
-// Simple OpenAI API wrapper
-export async function getOpenAIResponse(prompt) {
-  const apiKey = getOpenAIKey();
-  if (!apiKey) throw new Error(getOpenAIKeyError());
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+// Simple GROQ API wrapper (versión texto)
+export async function getGroqResponse(prompt) {
+  const apiKey = getGroqKey();
+  if (!apiKey) throw new Error(getGroqKeyError());
+
+  const model = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+
+  const res = await fetch(`https://api.groq.com/v1/models/${model}/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 150,
-      temperature: 0.7,
-    })
+      input: prompt,
+      temperature: 0.4,
+      max_output_tokens: 300,
+    }),
   });
-  const data = await res.json();
-  if (!res.ok) {
-    const code = data?.error?.code;
-    if (code === 'insufficient_quota' || res.status === 429) {
-      throw new Error(
-        'Tu clave de OpenAI es valida, pero no hay cuota activa en el proyecto (Billing/Usage).'
-      );
-    }
-    throw new Error(data?.error?.message || 'Error OpenAI');
+
+  const raw = await res.text();
+  let data = {};
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    throw new Error(`Respuesta no JSON de GROQ: ${raw.slice(0, 120)}`);
   }
-  return data.choices?.[0]?.message?.content || 'Sin respuesta.';
+
+  if (!res.ok) {
+    const message = data?.error?.message || `Error GROQ (${res.status})`;
+    throw new Error(message);
+  }
+
+  const content =
+    (Array.isArray(data?.output) &&
+      data.output[0]?.content
+        ?.map((item) => (item?.type === 'output_text' ? item.text : ''))
+        .join(''))
+      ?.trim() || 'Sin respuesta.';
+
+  return content;
 }
 

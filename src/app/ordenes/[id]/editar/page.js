@@ -8,6 +8,19 @@ import { ArrowLeft, Save, X } from 'lucide-react'
 import MotorAutocompleteInput from '@/components/MotorAutocompleteInput'
 import { useMotoresCatalog } from '@/hooks/useMotoresCatalog'
 import { formatOrdenCode } from '@/lib/ordenesDisplay'
+import {
+  buildTask,
+  parseDetailItems,
+  parseTaskState,
+  serializeDetailItems,
+  serializeTaskState,
+} from '@/lib/ordenTaskProgress'
+
+const TASK_SECTIONS = [
+  { key: 'blockTasks', title: 'Block', placeholder: 'Ej: cepillado de block', half: true },
+  { key: 'cabezoteTasks', title: 'Cabezote', placeholder: 'Ej: cepillado de cabezote', half: true },
+  { key: 'especialesTasks', title: 'Trabajos Especiales', placeholder: 'Ej: torno, soldaduras, ajustes especiales', half: false },
+]
 
 const TIPO_OPTIONS = [
   { value: 'gasolina', label: 'Gasolina' },
@@ -20,21 +33,6 @@ function todayLocal() {
   const offset = now.getTimezoneOffset()
   const local = new Date(now.getTime() - offset * 60 * 1000)
   return local.toISOString().slice(0, 10)
-}
-
-function normalizeTaskList(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item || '').trim()).filter(Boolean)
-  }
-
-  return String(value || '')
-    .split(/\r?\n/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-}
-
-function serializeTaskList(tasks) {
-  return tasks.map((item) => String(item || '').trim()).filter(Boolean).join('\n')
 }
 
 function normalizePhotoArray(value) {
@@ -81,7 +79,12 @@ export default function EditarOrden() {
   const [orden, setOrden] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [taskInput, setTaskInput] = useState('')
+  const [taskInputs, setTaskInputs] = useState({
+    blockTasks: '',
+    cabezoteTasks: '',
+    especialesTasks: '',
+  })
+  const [detailInput, setDetailInput] = useState('')
   const [newBlockFiles, setNewBlockFiles] = useState([])
   const [newCabezoteFiles, setNewCabezoteFiles] = useState([])
   const [ordenCode, setOrdenCode] = useState('000')
@@ -95,8 +98,12 @@ export default function EditarOrden() {
     prioridad: 'media',
     fecha_estimada: todayLocal(),
     estado: 'pendiente',
-    tareas: [],
-    datos_vino_detalle: '',
+    blockTasks: [],
+    cabezoteTasks: [],
+    especialesTasks: [],
+    armadoBlockDone: false,
+    armadoCabezoteDone: false,
+    detalles: [],
     fotos_block: [],
     fotos_cabezote: [],
   })
@@ -138,6 +145,7 @@ export default function EditarOrden() {
         setOrdenCode(String(index + 1).padStart(3, '0'))
       }
 
+      const taskState = parseTaskState(data.observaciones)
       setFormData({
         cliente: data.cliente || '',
         mecanico_dueno: data.mecanico_dueno || '',
@@ -148,8 +156,12 @@ export default function EditarOrden() {
         prioridad: data.prioridad || 'media',
         fecha_estimada: String(data.fecha_estimada || '').slice(0, 10) || todayLocal(),
         estado: data.estado || 'pendiente',
-        tareas: normalizeTaskList(data.observaciones),
-        datos_vino_detalle: data.datos_vino_detalle || '',
+        blockTasks: taskState.blockTasks,
+        cabezoteTasks: taskState.cabezoteTasks,
+        especialesTasks: taskState.especialesTasks,
+        armadoBlockDone: taskState.armadoBlockDone,
+        armadoCabezoteDone: taskState.armadoCabezoteDone,
+        detalles: parseDetailItems(data.datos_vino_detalle),
         fotos_block: normalizePhotoArray(data.fotos_block),
         fotos_cabezote: normalizePhotoArray(data.fotos_cabezote),
       })
@@ -161,21 +173,23 @@ export default function EditarOrden() {
     }
   }, [params.id])
 
-  const addTask = () => {
-    const task = taskInput.trim()
+  const addTask = (sectionKey) => {
+    const task = String(taskInputs[sectionKey] || '').trim()
     if (!task) return
 
+    const section = sectionKey === 'cabezoteTasks' ? 'cabezote' : sectionKey === 'especialesTasks' ? 'especiales' : 'block'
+
     setFormData((prev) => ({
       ...prev,
-      tareas: [...prev.tareas, task],
+      [sectionKey]: [...prev[sectionKey], buildTask(task, section)],
     }))
-    setTaskInput('')
+    setTaskInputs((prev) => ({ ...prev, [sectionKey]: '' }))
   }
 
-  const removeTask = (indexToRemove) => {
+  const removeTask = (sectionKey, indexToRemove) => {
     setFormData((prev) => ({
       ...prev,
-      tareas: prev.tareas.filter((_, index) => index !== indexToRemove),
+      [sectionKey]: prev[sectionKey].filter((_, index) => index !== indexToRemove),
     }))
   }
 
@@ -186,6 +200,24 @@ export default function EditarOrden() {
       return
     }
     setter(files)
+  }
+
+  const addDetail = () => {
+    const detail = detailInput.trim()
+    if (!detail) return
+
+    setFormData((prev) => ({
+      ...prev,
+      detalles: [...prev.detalles, detail],
+    }))
+    setDetailInput('')
+  }
+
+  const removeDetail = (indexToRemove) => {
+    setFormData((prev) => ({
+      ...prev,
+      detalles: prev.detalles.filter((_, index) => index !== indexToRemove),
+    }))
   }
 
   const handleSubmit = async (e) => {
@@ -243,8 +275,14 @@ export default function EditarOrden() {
           prioridad: formData.prioridad || 'media',
           fecha_estimada: formData.fecha_estimada || todayLocal(),
           estado: formData.estado || 'pendiente',
-          observaciones: serializeTaskList(formData.tareas),
-          datos_vino_detalle: formData.datos_vino_detalle || null,
+          observaciones: serializeTaskState({
+            blockTasks: formData.blockTasks,
+            cabezoteTasks: formData.cabezoteTasks,
+            especialesTasks: formData.especialesTasks,
+            armadoBlockDone: formData.armadoBlockDone,
+            armadoCabezoteDone: formData.armadoCabezoteDone,
+          }),
+          datos_vino_detalle: serializeDetailItems(formData.detalles) || null,
           fotos_block: fotosBlock,
           fotos_cabezote: fotosCabezote,
           updated_at: new Date().toISOString(),
@@ -392,52 +430,156 @@ export default function EditarOrden() {
 
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-2">Tareas</label>
-              <input
-                type="text"
-                value={taskInput}
-                onChange={(e) => setTaskInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addTask()
-                  }
-                }}
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="Escribe una tarea y presiona Enter"
-              />
-              <div className="mt-3 flex flex-wrap gap-2">
-                {formData.tareas.length ? (
-                  formData.tareas.map((task, index) => (
-                    <span
-                      key={`${task}-${index}`}
-                      className="inline-flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
-                    >
-                      <span>{task}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {TASK_SECTIONS.filter((section) => section.half).map((section) => (
+                  <div key={section.key} className="rounded-xl border border-stone-200 p-4 bg-stone-50">
+                    <div className="font-semibold text-stone-800">{section.title}</div>
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        type="text"
+                        value={taskInputs[section.key]}
+                        onChange={(e) => setTaskInputs((prev) => ({ ...prev, [section.key]: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            addTask(section.key)
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        placeholder={section.placeholder}
+                      />
                       <button
                         type="button"
-                        onClick={() => removeTask(index)}
-                        className="rounded-full text-red-700 hover:text-red-900"
-                        aria-label={`Eliminar tarea ${task}`}
+                        onClick={() => addTask(section.key)}
+                        className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {formData[section.key].length ? (
+                        formData[section.key].map((task, index) => (
+                          <span
+                            key={`${task.id}-${index}`}
+                            className="inline-flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
+                          >
+                            <span>{task.text}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeTask(section.key, index)}
+                              className="rounded-full text-red-700 hover:text-red-900"
+                              aria-label={`Eliminar tarea ${task.text}`}
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm text-stone-400">Sin tareas en {section.title.toLowerCase()}.</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-xl border border-stone-200 p-4 bg-stone-50">
+                <div className="font-semibold text-stone-800">Trabajos Especiales</div>
+                <div className="mt-3 flex gap-2">
+                  <input
+                    type="text"
+                    value={taskInputs.especialesTasks}
+                    onChange={(e) => setTaskInputs((prev) => ({ ...prev, especialesTasks: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addTask('especialesTasks')
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Ej: torno, soldaduras, ajustes especiales"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addTask('especialesTasks')}
+                    className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {formData.especialesTasks.length ? (
+                    formData.especialesTasks.map((task, index) => (
+                      <span
+                        key={`${task.id}-${index}`}
+                        className="inline-flex items-start gap-2 rounded-2xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800"
+                      >
+                        <span>{task.text}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeTask('especialesTasks', index)}
+                          className="rounded-full text-stone-500 hover:text-stone-800"
+                          aria-label={`Eliminar tarea ${task.text}`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-stone-400">Sin trabajos especiales.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-2">Detalle / novedades</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={detailInput}
+                  onChange={(e) => setDetailInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addDetail()
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  placeholder="Notas adicionales de recepcion o del trabajo"
+                />
+                <button
+                  type="button"
+                  onClick={addDetail}
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700"
+                >
+                  +
+                </button>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {formData.detalles.length ? (
+                  formData.detalles.map((detail, index) => (
+                    <span
+                      key={`${detail}-${index}`}
+                      className="inline-flex items-start gap-2 rounded-2xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-800"
+                    >
+                      <span>{detail}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeDetail(index)}
+                        className="rounded-full text-stone-500 hover:text-stone-800"
+                        aria-label={`Eliminar detalle ${detail}`}
                       >
                         <X size={14} />
                       </button>
                     </span>
                   ))
                 ) : (
-                  <span className="text-sm text-stone-400">Aun no has agregado tareas.</span>
+                  <span className="text-sm text-stone-400">Aun no has agregado novedades.</span>
                 )}
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">Detalle / novedades</label>
-              <textarea
-                value={formData.datos_vino_detalle}
-                onChange={(e) => setFormData({ ...formData, datos_vino_detalle: e.target.value })}
-                rows={4}
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="Notas adicionales de recepcion o del trabajo"
-              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

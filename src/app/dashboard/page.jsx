@@ -77,12 +77,6 @@ export default function DashboardPage() {
           >
             Ir a Órdenes
           </Link>
-          <Link
-            href="/login"
-            className="px-3 py-2 rounded-xl border border-stone-200 bg-white shadow-sm hover:shadow transition font-semibold"
-          >
-            Login
-          </Link>
         </div>
       </div>
 
@@ -108,14 +102,10 @@ export default function DashboardPage() {
         <Link href="/facturacion" className="bg-white rounded-2xl shadow-xl border border-stone-200 p-4 hover:shadow-2xl transition flex items-center gap-3">
           <FileText /> <div><div className="font-bold">Facturación</div><div className="text-xs text-stone-500">Proformas</div></div>
         </Link>
-        <Link href="/analitica" className="bg-white rounded-2xl shadow-xl border border-stone-200 p-4 hover:shadow-2xl transition flex items-center gap-3">
-          <BarChart3 /> <div><div className="font-bold">Analítica</div><div className="text-xs text-stone-500">Métricas</div></div>
-        </Link>
       </div>
     </div>
   );
 }
-
 
 
 

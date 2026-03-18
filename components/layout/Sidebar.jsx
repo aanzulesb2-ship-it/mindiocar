@@ -6,10 +6,10 @@ import { LayoutDashboard, Wrench, Users, FileText, BarChart3 } from "lucide-reac
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/gestor", label: "Órdenes", icon: Wrench },
+  { href: "/gestor", label: "ï¿½rdenes", icon: Wrench },
   { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/facturacion", label: "Facturación", icon: FileText },
-  { href: "/analitica", label: "Analítica", icon: BarChart3 },
+  { href: "/facturacion", label: "Facturaciï¿½n", icon: FileText },
+
 ];
 
 function NavItem({ href, label, icon: Icon, active, onNavigate }) {
@@ -37,7 +37,7 @@ export default function Sidebar({ onNavigate }) {
     <aside className="fixed left-0 top-0 h-full w-72 bg-white border-r border-stone-200 p-4">
       <div className="mb-4">
         <div className="font-black text-xl tracking-tight">Rectificadora Mindiocar</div>
-        <div className="text-xs text-stone-500">Panel principal • V2</div>
+        <div className="text-xs text-stone-500">Panel principal ï¿½ V2</div>
       </div>
 
       <div className="space-y-2">
@@ -58,7 +58,7 @@ export default function Sidebar({ onNavigate }) {
       <div className="mt-6 p-3 rounded-2xl border border-stone-200 bg-stone-50">
         <div className="text-sm font-bold">Modo V2</div>
         <div className="text-xs text-stone-600 mt-1">
-          Diseño unificado + base para búsqueda global, roles y demo.
+          Diseï¿½o unificado + base para bï¿½squeda global, roles y demo.
         </div>
       </div>
     </aside>

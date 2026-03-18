@@ -1,64 +1,50 @@
-﻿import OpenAI from "openai";
+import { getGroqKey, getGroqKeyError } from "@/lib/groq";
 
 export const runtime = "nodejs";
-const model = process.env.OPENAI_CHAT_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function POST(req) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      return Response.json(
-        { error: "Falta configurar OPENAI_API_KEY en .env.local" },
-        { status: 500 }
-      );
+    const groqKey = getGroqKey();
+    if (!groqKey) {
+      return Response.json({ error: getGroqKeyError() }, { status: 500 });
     }
 
-    const body = await req.json();
-    const messages = Array.isArray(body?.messages) ? body.messages : [];
+    const form = await req.formData();
+    const file = form.get("file");
 
-    if (!messages.length) {
-      return Response.json(
-        { error: "No se recibieron mensajes." },
-        { status: 400 }
-      );
+    if (!(file instanceof File)) {
+      return Response.json({ error: "No se recibio ningun archivo de audio." }, { status: 400 });
     }
 
-    const input = messages
-      .filter((m) => m && typeof m.content !== "undefined")
-      .map((m) => ({
-        role:
-          m.role === "system"
-            ? "system"
-            : m.role === "assistant"
-            ? "assistant"
-            : "user",
-        content: [
-          {
-            type: "input_text",
-            text: String(m.content ?? ""),
-          },
-        ],
-      }));
+    const apiForm = new FormData();
+    apiForm.append("file", file, file.name || "consulta.webm");
+    apiForm.append("model", process.env.GROQ_TRANSCRIPTION_MODEL || "whisper-large-v3-turbo");
+    apiForm.append("language", "es");
+    apiForm.append("response_format", "verbose_json");
 
-    const response = await client.responses.create({
-      model,
-      input,
-    });
-
-    return Response.json({
-      content: response.output_text || "No hubo respuesta del asistente.",
-    });
-  } catch (error) {
-    console.error("Error en /api/asistente:", error);
-
-    return Response.json(
-      {
-        error: error?.message || "Error interno del servidor en el asistente.",
+    const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${groqKey}`,
       },
-      { status: 500 }
-    );
+      body: apiForm,
+    });
+
+    const raw = await res.text();
+    let data = {};
+
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      return Response.json({ error: `Respuesta no JSON de GROQ: ${raw.slice(0, 120)}` }, { status: 502 });
+    }
+
+    if (!res.ok) {
+      return Response.json({ error: data?.error?.message || `Error GROQ (${res.status})` }, { status: res.status || 500 });
+    }
+
+    return Response.json({ text: String(data?.text || "").trim() });
+  } catch (error) {
+    return Response.json({ error: error?.message || "Error interno al transcribir audio." }, { status: 500 });
   }
 }

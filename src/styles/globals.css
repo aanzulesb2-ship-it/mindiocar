@@ -9,33 +9,79 @@
   --warning-yellow: #f59e0b;
   --app-accent: #ffd60a;
   --app-accent-strong: #ffb800;
+  --app-bg-light: #fafaf9;
+  --app-surface: #ffffff;
+  --app-surface-soft: #f5f5f4;
+  --app-surface-strong: #e7e5e4;
+  --app-text: #111827;
+  --app-text-soft: #57534e;
+  --app-border: #d6d3d1;
+  --app-shadow: 0 10px 25px rgb(0 0 0 / 0.08);
+}
+
+html[data-color-mode="dark"] {
+  --app-accent: #f4c430;
+  --app-accent-strong: #d4af37;
+  --app-bg-light: #0b0b0f;
+  --app-surface: #131319;
+  --app-surface-soft: #1a1a22;
+  --app-surface-strong: #242430;
+  --app-text: #f4c430;
+  --app-text-soft: #f7df83;
+  --app-border: #d4af37;
+  --app-shadow: 0 12px 30px rgb(0 0 0 / 0.35);
 }
 
 @layer base {
+  html,
   body {
-    background-color: #fafaf9;
-    color: #111827;
+    min-height: 100%;
+  }
+
+  body {
+    background-color: var(--app-bg-light);
+    color: var(--app-text);
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+  }
+
+  button,
+  input,
+  textarea,
+  select,
+  a,
+  div,
+  section,
+  article,
+  header,
+  footer,
+  aside,
+  main {
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
   }
 }
 
 @layer components {
   .card-mindiocar {
-    background-color: white;
+    background-color: var(--app-surface);
     border-radius: 1rem;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    border: 1px solid #f5f5f4;
+    box-shadow: var(--app-shadow);
+    border: 1px solid var(--app-border);
     padding: 2rem;
   }
+
   .btn-mindiocar {
-    background-color: #ffcd11;
+    background-color: var(--app-accent);
     color: #1c1917;
     font-weight: 700;
     padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
     transition: all 0.2s;
   }
-  .btn-mindiocar:hover {
-    background-color: #e0b400;
+
+  html[data-color-mode="dark"] .btn-mindiocar {
+    background-color: var(--app-surface-soft);
+    color: var(--app-text);
+    border: 1px solid var(--app-border);
   }
 }
 
@@ -43,50 +89,151 @@
   .text-brand-red {
     color: #dc2626 !important;
   }
+
   .text-red-600 {
     color: #ffd60a !important;
   }
+
   .text-red-500 {
     color: #ffe14d !important;
   }
+
   .bg-red-50 {
     background-color: #fff9e6 !important;
   }
+
   .bg-red-100 {
     background-color: #fff1bf !important;
   }
+
   .bg-red-600 {
     background-color: #ffd60a !important;
   }
+
   .bg-red-700 {
     background-color: #ffb800 !important;
   }
+
   .border-red-200 {
     border-color: #ffe78c !important;
   }
+
   .focus\:ring-red-500:focus {
     --tw-ring-color: #ffd60a !important;
   }
+
   .hover\:bg-red-700:hover {
     background-color: #ffb800 !important;
   }
+
   .hover\:bg-red-50:hover {
     background-color: #fff9e6 !important;
   }
+
   .hover\:text-red-600:hover {
     color: #ffd60a !important;
   }
+
   .hover\:from-red-700:hover {
     --tw-gradient-from: #ffb800 var(--tw-gradient-from-position) !important;
   }
+
   .hover\:to-red-500:hover {
     --tw-gradient-to: #ffe14d var(--tw-gradient-to-position) !important;
   }
+
   .from-red-600 {
     --tw-gradient-from: #ffd60a var(--tw-gradient-from-position) !important;
   }
+
   .to-red-400 {
     --tw-gradient-to: #ffe14d var(--tw-gradient-to-position) !important;
   }
-}
 
+  html[data-color-mode="dark"] .bg-white,
+  html[data-color-mode="dark"] .bg-white\/90,
+  html[data-color-mode="dark"] .bg-stone-50,
+  html[data-color-mode="dark"] .bg-stone-100,
+  html[data-color-mode="dark"] .bg-stone-200 {
+    background-color: var(--app-surface) !important;
+  }
+
+  html[data-color-mode="dark"] .to-white,
+  html[data-color-mode="dark"] .via-stone-50,
+  html[data-color-mode="dark"] .from-red-50 {
+    --tw-gradient-from: var(--app-bg-light) var(--tw-gradient-from-position) !important;
+    --tw-gradient-to: var(--app-surface) var(--tw-gradient-to-position) !important;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--app-surface-soft), var(--tw-gradient-to) !important;
+  }
+
+  html[data-color-mode="dark"] .bg-stone-900,
+  html[data-color-mode="dark"] .bg-green-600,
+  html[data-color-mode="dark"] .bg-green-700,
+  html[data-color-mode="dark"] .bg-red-600,
+  html[data-color-mode="dark"] .bg-red-700,
+  html[data-color-mode="dark"] .bg-yellow-400,
+  html[data-color-mode="dark"] .bg-orange-500 {
+    background-color: var(--app-surface-soft) !important;
+    color: var(--app-text) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  html[data-color-mode="dark"] .border-stone-100,
+  html[data-color-mode="dark"] .border-stone-200,
+  html[data-color-mode="dark"] .border-stone-300,
+  html[data-color-mode="dark"] .border-stone-400,
+  html[data-color-mode="dark"] .border-red-200,
+  html[data-color-mode="dark"] .border-yellow-300,
+  html[data-color-mode="dark"] .border-green-200 {
+    border-color: var(--app-border) !important;
+  }
+
+  html[data-color-mode="dark"] .text-stone-900,
+  html[data-color-mode="dark"] .text-stone-800,
+  html[data-color-mode="dark"] .text-stone-700,
+  html[data-color-mode="dark"] .text-stone-600,
+  html[data-color-mode="dark"] .text-stone-500,
+  html[data-color-mode="dark"] .text-stone-400,
+  html[data-color-mode="dark"] .text-white,
+  html[data-color-mode="dark"] .text-brand-red {
+    color: var(--app-text) !important;
+  }
+
+  html[data-color-mode="dark"] .placeholder\:text-stone-400::placeholder,
+  html[data-color-mode="dark"] input::placeholder,
+  html[data-color-mode="dark"] textarea::placeholder {
+    color: var(--app-text-soft) !important;
+  }
+
+  html[data-color-mode="dark"] .shadow-sm,
+  html[data-color-mode="dark"] .shadow,
+  html[data-color-mode="dark"] .shadow-xl,
+  html[data-color-mode="dark"] .shadow-2xl {
+    box-shadow: var(--app-shadow) !important;
+  }
+
+  html[data-color-mode="dark"] .hover\:bg-stone-50:hover,
+  html[data-color-mode="dark"] .hover\:bg-stone-100:hover,
+  html[data-color-mode="dark"] .hover\:bg-red-50:hover,
+  html[data-color-mode="dark"] .hover\:bg-red-700:hover,
+  html[data-color-mode="dark"] .hover\:bg-green-700:hover,
+  html[data-color-mode="dark"] .hover\:bg-stone-800:hover {
+    background-color: var(--app-surface-strong) !important;
+  }
+
+  html[data-color-mode="dark"] .focus\:ring-red-500:focus,
+  html[data-color-mode="dark"] .focus\:ring-yellow-400:focus,
+  html[data-color-mode="dark"] .focus\:ring-red-300:focus {
+    --tw-ring-color: rgb(212 175 55 / 0.45) !important;
+  }
+
+  html[data-color-mode="dark"] .from-red-500,
+  html[data-color-mode="dark"] .from-red-600,
+  html[data-color-mode="dark"] .via-orange-500,
+  html[data-color-mode="dark"] .to-emerald-500,
+  html[data-color-mode="dark"] .to-red-400 {
+    --tw-gradient-from: #d4af37 var(--tw-gradient-from-position) !important;
+    --tw-gradient-to: #f4c430 var(--tw-gradient-to-position) !important;
+    --tw-gradient-stops: var(--tw-gradient-from), #e8c75f, var(--tw-gradient-to) !important;
+  }
+}

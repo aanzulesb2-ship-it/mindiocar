@@ -1,11 +1,18 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import MotorAutocompleteInput from '@/components/MotorAutocompleteInput'
 import { useMotoresCatalog } from '@/hooks/useMotoresCatalog'
+import { buildTask, serializeDetailItems, serializeTaskState } from '@/lib/ordenTaskProgress'
+
+const TASK_SECTIONS = [
+  { key: 'blockTasks', title: 'Block', placeholder: 'Ej: cepillado de block', half: true },
+  { key: 'cabezoteTasks', title: 'Cabezote', placeholder: 'Ej: cepillado de cabezote', half: true },
+  { key: 'especialesTasks', title: 'Trabajos Especiales', placeholder: 'Ej: torno, soldaduras, ajustes especiales', half: false },
+]
 
 const VINO_ITEMS = [
   'Block', 'Base', 'Carter', 'Tapa valvulas', 'Tornilleria',
@@ -62,17 +69,26 @@ function todayLocal() {
   return local.toISOString().slice(0, 10)
 }
 
-function serializeTaskList(tasks) {
-  return tasks.map((item) => String(item || '').trim()).filter(Boolean).join('\n')
-}
-
 export default function NuevaOrdenPage() {
   const router = useRouter()
   const { motores, addMotor } = useMotoresCatalog()
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
-  const [taskInput, setTaskInput] = useState('')
-  const [tasks, setTasks] = useState([])
+  const [taskInputs, setTaskInputs] = useState({
+    blockTasks: '',
+    cabezoteTasks: '',
+    especialesTasks: '',
+  })
+  const [detailInput, setDetailInput] = useState('')
+  const [taskState, setTaskState] = useState({
+    blockTasks: [],
+    cabezoteTasks: [],
+    especialesTasks: [],
+    armadoBlockDone: false,
+    armadoCabezoteDone: false,
+  })
+  const [detailItems, setDetailItems] = useState([])
+  const detailInputRef = useRef(null)
 
   const [form, setForm] = useState({
     cliente: '',
@@ -117,15 +133,38 @@ export default function NuevaOrdenPage() {
     }))
   }
 
-  const addTask = () => {
-    const task = taskInput.trim()
+  const addTask = (sectionKey) => {
+    const task = String(taskInputs[sectionKey] || '').trim()
     if (!task) return
-    setTasks((prev) => [...prev, task])
-    setTaskInput('')
+
+    const section = sectionKey === 'cabezoteTasks' ? 'cabezote' : sectionKey === 'especialesTasks' ? 'especiales' : 'block'
+
+    setTaskState((prev) => ({
+      ...prev,
+      [sectionKey]: [...prev[sectionKey], buildTask(task, section)],
+    }))
+    setTaskInputs((prev) => ({ ...prev, [sectionKey]: '' }))
   }
 
-  const removeTask = (indexToRemove) => {
-    setTasks((prev) => prev.filter((_, index) => index !== indexToRemove))
+  const removeTask = (sectionKey, indexToRemove) => {
+    setTaskState((prev) => ({
+      ...prev,
+      [sectionKey]: prev[sectionKey].filter((_, index) => index !== indexToRemove),
+    }))
+  }
+
+  const addDetailItem = () => {
+    const detail = detailInput.trim()
+    if (!detail) return
+    setDetailItems((prev) => [...prev, detail])
+    setDetailInput('')
+    setTimeout(() => {
+      detailInputRef.current?.focus()
+    }, 0)
+  }
+
+  const removeDetailItem = (indexToRemove) => {
+    setDetailItems((prev) => prev.filter((_, index) => index !== indexToRemove))
   }
 
   const handleSubmit = async (e) => {
@@ -143,9 +182,9 @@ export default function NuevaOrdenPage() {
         tipo_motor: form.tipo_motor || null,
         prioridad: form.prioridad || 'media',
         fecha_estimada: form.fecha_estimada || todayLocal(),
-        observaciones: serializeTaskList(tasks) || null,
+        observaciones: serializeTaskState(taskState),
         datos_vino: form.datos_vino || {},
-        datos_vino_detalle: form.datos_vino_detalle || null,
+        datos_vino_detalle: serializeDetailItems(detailItems) || null,
         estado: 'pendiente',
       }
 
@@ -326,40 +365,107 @@ export default function NuevaOrdenPage() {
 
             <div className="mt-5">
               <label className="text-xs font-black uppercase tracking-widest text-stone-500">Tareas</label>
-              <input
-                value={taskInput}
-                onChange={(e) => setTaskInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addTask()
-                  }
-                }}
-                className="mt-2 w-full px-3 py-2 border border-stone-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="Escribe una tarea y presiona Enter"
-              />
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {tasks.length ? (
-                  tasks.map((task, index) => (
-                    <span
-                      key={`${task}-${index}`}
-                      className="inline-flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
-                    >
-                      <span>{task}</span>
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {TASK_SECTIONS.filter((section) => section.half).map((section) => (
+                  <div key={section.key} className="rounded-2xl border border-stone-200 p-4 bg-stone-50">
+                    <div className="font-black text-stone-900">{section.title}</div>
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        value={taskInputs[section.key]}
+                        onChange={(e) => setTaskInputs((prev) => ({ ...prev, [section.key]: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            addTask(section.key)
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 border border-stone-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        placeholder={section.placeholder}
+                      />
                       <button
                         type="button"
-                        onClick={() => removeTask(index)}
-                        className="rounded-full text-red-700 hover:text-red-900"
-                        aria-label={`Eliminar tarea ${task}`}
+                        onClick={() => addTask(section.key)}
+                        className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition"
+                        aria-label={`Agregar tarea ${section.title}`}
                       >
-                        x
+                        +
                       </button>
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm text-stone-400">Aun no has agregado tareas.</span>
-                )}
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {taskState[section.key].length ? (
+                        taskState[section.key].map((task, index) => (
+                          <span
+                            key={`${task.id}-${index}`}
+                            className="inline-flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
+                          >
+                            <span>{task.text}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeTask(section.key, index)}
+                              className="rounded-full text-red-700 hover:text-red-900"
+                              aria-label={`Eliminar tarea ${task.text}`}
+                            >
+                              x
+                            </button>
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm text-stone-400">Sin tareas en {section.title.toLowerCase()}.</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-stone-200 p-4 bg-stone-50">
+                <div className="font-black text-stone-900">Trabajos Especiales</div>
+                <div className="mt-3 flex gap-2">
+                  <input
+                    value={taskInputs.especialesTasks}
+                    onChange={(e) => setTaskInputs((prev) => ({ ...prev, especialesTasks: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addTask('especialesTasks')
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Ej: torno, soldaduras, ajustes especiales"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addTask('especialesTasks')}
+                    className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition"
+                    aria-label="Agregar tarea especial"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {taskState.especialesTasks.length ? (
+                    taskState.especialesTasks.map((task, index) => (
+                      <span
+                        key={`${task.id}-${index}`}
+                        className="inline-flex items-start gap-2 rounded-2xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800"
+                      >
+                        <span>{task.text}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeTask('especialesTasks', index)}
+                          className="rounded-full text-stone-500 hover:text-stone-800"
+                          aria-label={`Eliminar tarea ${task.text}`}
+                        >
+                          x
+                        </button>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-stone-400">Sin trabajos especiales.</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -397,13 +503,52 @@ export default function NuevaOrdenPage() {
               <label className="text-xs font-black uppercase tracking-widest text-stone-500">
                 Detalle / novedades de piezas
               </label>
-              <textarea
-                rows={4}
-                value={form.datos_vino_detalle}
-                onChange={(e) => setForm({ ...form, datos_vino_detalle: e.target.value })}
-                className="mt-2 w-full px-3 py-2 border border-stone-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="Ej: bielas fundidas, faltan pernos, cigueenal rayado"
-              />
+              <div className="mt-2 flex gap-2">
+                <input
+                  ref={detailInputRef}
+                  value={detailInput}
+                  onChange={(e) => setDetailInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addDetailItem()
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 border border-stone-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  placeholder="Ej: bielas fundidas, faltan pernos, cigueenal rayado"
+                />
+                <button
+                  type="button"
+                  onClick={addDetailItem}
+                  className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition"
+                  aria-label="Agregar detalle"
+                >
+                  +
+                </button>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {detailItems.length ? (
+                  detailItems.map((detail, index) => (
+                    <span
+                      key={`${detail}-${index}`}
+                      className="inline-flex items-start gap-2 rounded-2xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-800"
+                    >
+                      <span>{detail}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeDetailItem(index)}
+                        className="rounded-full text-stone-500 hover:text-stone-800"
+                        aria-label={`Eliminar detalle ${detail}`}
+                      >
+                        x
+                      </button>
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm text-stone-400">Aun no has agregado novedades.</span>
+                )}
+              </div>
             </div>
           </div>
 
